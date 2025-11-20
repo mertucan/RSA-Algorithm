@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSA Algoritması Uygulaması</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Tab Navigation Styles */
+        .tab-nav {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            border: 1px solid var(--primary-accent);
+            background-color: transparent;
+            color: var(--text-color);
+            cursor: pointer;
+            font-family: 'Roboto Mono', monospace;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tab-button.active, .tab-button:hover {
+            background-color: var(--primary-accent);
+            color: var(--background-color);
+            box-shadow: 0 0 10px var(--primary-accent);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .help-text {
+            background-color: #2a2a2a;
+            padding: 15px;
+            border-left: 4px solid var(--primary-accent);
+            margin-bottom: 20px;
+            color: #ccc;
+            font-size: 0.9em;
+        }
+
+        .warning-box {
+            background-color: rgba(255, 165, 0, 0.1);
+            border: 1px solid orange;
+            color: #ffd700;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+        }
+        .warning-box strong {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="content-wrapper">
+        <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+            
+            <!-- Header & Parameters -->
+            <div class="container" style="margin-bottom: 20px;">
+                <div class="header">
+                    <h1>RSA Algoritması</h1>
+                </div>
+                <div class="subtitle">Flask ile Kriptografi Simülasyonu</div>
+                
+                <div class="details-table-container">
+                    <table class="details-table">
+                        <tr>
+                            <th>Parametre</th>
+                            <th>Değer</th>
+                            <th>Açıklama</th>
+                        </tr>
+                        <tr>
+                            <td>p</td>
+                            <td>{{ p }}</td>
+                            <td>1. Asal Sayı</td>
+                        </tr>
+                        <tr>
+                            <td>q</td>
+                            <td>{{ q }}</td>
+                            <td>2. Asal Sayı</td>
+                        </tr>
+                        <tr>
+                            <td>n</td>
+                            <td>{{ n }}</td>
+                            <td>Modül (p * q) - Harf Uzayı</td>
+                        </tr>
+                        <tr>
+                            <td>&phi;(n)</td>
+                            <td>{{ phi }}</td>
+                            <td>Euler Fonksiyonu ((p-1)*(q-1))</td>
+                        </tr>
+                        <tr>
+                            <td>e</td>
+                            <td>{{ e }}</td>
+                            <td>Açık Anahtar Üssü</td>
+                        </tr>
+                        <tr>
+                            <td>d</td>
+                            <td>{{ d }}</td>
+                            <td>Gizli Anahtar Üssü</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="container" style="padding: 20px;">
+                <div class="tab-nav">
+                    <button type="button" class="tab-button {{ 'active' if active_tab == 'encrypt' else '' }}" onclick="openTab('encrypt')">Şifreleme</button>
+                    <button type="button" class="tab-button {{ 'active' if active_tab == 'decrypt' else '' }}" onclick="openTab('decrypt')">Şifre Çözme</button>
+                    <button type="button" class="tab-button {{ 'active' if active_tab == 'sign' else '' }}" onclick="openTab('sign')">İmzalama & Doğrulama</button>
+                    <button type="button" class="tab-button {{ 'active' if active_tab == 'exchange' else '' }}" onclick="openTab('exchange')">Anahtar Değişimi</button>
+                </div>
+            </div>
+
+            <!-- Encryption Content -->
+            <div id="encrypt" class="container tab-content {{ 'active' if active_tab == 'encrypt' else '' }}">
+                <h2>a) Şifreleme (Encryption)</h2>
+                <div class="warning-box">
+                    <strong>UYARI:</strong> n = 33 olduğu için harf uzayı sınırlıdır. Sadece a-z (küçük harf) ve boşluk kullanınız. Rakam veya özel karakterler (örn: ş,ğ,ü) hatalı sonuç verebilir.
+                </div>
+                <div class="help-text">
+                    <strong>Nasıl Yapılır?</strong>
+                    <p>1. Aşağıdaki kutuya şifrelemek istediğiniz mesajı (örneğin "merhaba") yazın.</p>
+                    <p>2. "Şifrele" butonuna basın.</p>
+                    <p>3. Sonuç kutusunda çıkan sayılar, mesajınızın şifrelenmiş halidir. Bu sayıları bir sonraki aşamada kullanmak için not edebilirsiniz.</p>
+                </div>
+                <p class="subtitle">Metni Sayısal Şifreye Dönüştür</p>
+                <form action="/encrypt" method="post">
+                    <textarea name="message" placeholder="Mesajınızı girin (a-z)...">{{ original_message_enc }}</textarea>
+                    <button type="submit">Şifrele</button>
+                </form>
+                {% if encrypt_result %}
+                <div class="result-box">
+                    <strong>Şifreli Metin (Sayılar):</strong><br>
+                    {{ encrypt_result | join(' ') }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Decryption Content -->
+            <div id="decrypt" class="container tab-content {{ 'active' if active_tab == 'decrypt' else '' }}">
+                <h2>Şifre Çözme (Decryption)</h2>
+                <div class="warning-box">
+                    <strong>UYARI:</strong> Şifreli metinler 0 ile 32 arasında sayılar olmalıdır.
+                </div>
+                <div class="help-text">
+                    <strong>Nasıl Yapılır?</strong>
+                    <p>1. "Şifreleme" adımında elde ettiğiniz sayıları aralarında boşluk bırakarak buraya yazın (Örn: 5 12 20).</p>
+                    <p>2. "Şifreyi Çöz" butonuna basın.</p>
+                    <p>3. Sistem, gizli anahtarı (d) kullanarak orijinal mesajınızı geri getirecektir.</p>
+                </div>
+                <p class="subtitle">Sayısal Şifreyi Metne Dönüştür</p>
+                <form action="/decrypt" method="post">
+                    <textarea name="ciphertext" placeholder="Şifreli sayıları aralarında boşluk bırakarak girin...">{{ original_ciphertext_dec }}</textarea>
+                    <button type="submit">Şifreyi Çöz</button>
+                </form>
+                {% if decrypt_result %}
+                <div class="result-box">
+                    <strong>Çözülmüş Metin:</strong><br>
+                    {{ decrypt_result }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Signing & Verification Content -->
+            <div id="sign" class="container tab-content {{ 'active' if active_tab == 'sign' else '' }}">
+                <h2>b) İmzalama ve Doğrulama</h2>
+                
+                <div style="margin-bottom: 40px;">
+                    <h3>1. İmzalama (Signing)</h3>
+                    <div class="warning-box">
+                        <strong>UYARI:</strong> n=33 sınırı nedeniyle sadece küçük harf (a-z) ve boşluk kullanınız.
+                    </div>
+                    <div class="help-text">
+                        <strong>Nasıl Yapılır?</strong>
+                        <p>Bu işlem, mesajın gerçekten sizden geldiğini kanıtlar.</p>
+                        <p>1. İmzalamak istediğiniz metni girin.</p>
+                        <p>2. "İmzala" butonuna basın.</p>
+                        <p>3. Oluşan sayı dizisi sizin dijital imzanızdır.</p>
+                    </div>
+                    <form action="/sign" method="post">
+                        <textarea name="message" placeholder="İmzalanacak mesaj...">{{ original_message_sign }}</textarea>
+                        <button type="submit">İmzala</button>
+                    </form>
+                    {% if sign_result %}
+                    <div class="result-box">
+                        <strong>İmza (Sayılar):</strong><br>
+                        {{ sign_result | join(' ') }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <hr style="border-color: #333; margin: 30px 0;">
+
+                <div>
+                    <h3>2. Doğrulama (Verification)</h3>
+                    <div class="help-text">
+                        <strong>Nasıl Yapılır?</strong>
+                        <p>Bu işlem, imzanın geçerli olup olmadığını kontrol eder.</p>
+                        <p>1. Yukarıda oluşturduğunuz imza sayılarını (veya başka bir imza dizisini) girin.</p>
+                        <p>2. "Doğrula" butonuna basın.</p>
+                        <p>3. Eğer imza geçerliyse, orijinal metin ortaya çıkar.</p>
+                    </div>
+                    <form action="/verify" method="post">
+                        <textarea name="signature" placeholder="İmza sayılarını girin...">{{ original_signature_ver }}</textarea>
+                        <button type="submit">Doğrula</button>
+                    </form>
+                    {% if verify_result %}
+                    <div class="result-box">
+                        <strong>Doğrulanan Metin:</strong><br>
+                        {{ verify_result }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Key Exchange Content -->
+            <div id="exchange" class="container tab-content {{ 'active' if active_tab == 'exchange' else '' }}">
+                <h2>c) Anahtar Değişimi Senaryosu</h2>
+                <div class="help-text">
+                    <strong>Senaryo Nedir?</strong>
+                    <p>Alice ve Bob güvenli olmayan bir kanaldan haberleşiyor. Alice, Bob'a gizli bir anahtar (sayı) göndermek istiyor.</p>
+                    <p>1. "Simülasyonu Başlat" butonuna basın.</p>
+                    <p>2. Sistemin adım adım nasıl şifreleme yapıp anahtarı güvenle ilettiğini izleyin.</p>
+                </div>
+                <p class="subtitle">Diffie-Hellman / RSA Anahtar Taşıma Simülasyonu</p>
+                <form action="/exchange" method="post">
+                    <button type="submit">Simülasyonu Başlat</button>
+                </form>
+                {% if exchange_result %}
+                <div class="steps-container">
+                    {% for step in exchange_result %}
+                    <div class="step">
+                        {{ step }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+    <footer>
+        RSA Flask Implementation &copy; 2025
+    </footer>
+
+    <script>
+        // Preserve scroll position on reload
+        document.addEventListener("DOMContentLoaded", function(event) { 
+            var scrollpos = localStorage.getItem('scrollpos');
+            if (scrollpos) window.scrollTo(0, scrollpos);
+        });
+
+        window.onbeforeunload = function(e) {
+            localStorage.setItem('scrollpos', window.scrollY);
+        };
+
+        function openTab(tabName) {
+            // Clear scroll pos on explicit tab change if desired, but user wants to stay put mostly.
+            // But if I switch tabs, I probably want to see the top of that tab.
+            // The user issue was "pressing buttons (likely submit) throws to top".
+            // So manual tab clicking works fine.
+            
+            var contents = document.getElementsByClassName('tab-content');
+            for (var i = 0; i < contents.length; i++) {
+                contents[i].classList.remove('active');
+            }
+            
+            var buttons = document.getElementsByClassName('tab-button');
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove('active');
+            }
+            
+            document.getElementById(tabName).classList.add('active');
+            
+            // Re-highlight active button
+            for (var i = 0; i < buttons.length; i++) {
+                if (buttons[i].getAttribute('onclick').includes("'" + tabName + "'")) {
+                    buttons[i].classList.add('active');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
